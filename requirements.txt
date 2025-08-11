@@ -1,19 +1,5 @@
-# Install numpy first so other wheels resolve cleanly
 numpy==1.26.4
-
-# OpenCV (wheel)
-opencv-python==4.10.0.84
-
-# headless avoids extra X/GL dependencies
 opencv-python-headless==4.10.0.84
-
-# ONNX Runtime GPU that matches CUDA 12.1 in the base image
-onnxruntime-gpu==1.18.1
-
-# InsightFace (wheel available; the newer pip will fetch it instead of building)
-insightface==0.7.3
-
-# RunPod serverless SDK
-runpod==1.6.2
-
 onnxruntime==1.18.1
+insightface==0.7.3
+runpod==1.6.2
