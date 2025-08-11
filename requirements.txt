@@ -1,1 +1,5 @@
-runpod==1.7.12
+opencv-python
+insightface
+onnxruntime
+numpy
+runpod
