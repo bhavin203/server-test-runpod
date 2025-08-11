@@ -19,6 +19,6 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Your serverless handler
-COPY handler.py .
+COPY rp_handler.py .
 
-CMD ["python", "-u", "handler.py"]
+CMD ["python", "-u", "rp_handler.py"]
