@@ -12,3 +12,5 @@ insightface==0.7.3
 
 # RunPod serverless SDK
 runpod==1.6.2
+
+onnxruntime==1.18.1
