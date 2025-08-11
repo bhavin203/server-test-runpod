@@ -1,5 +1,5 @@
-opencv-python
-insightface
-onnxruntime
-numpy
-runpod
+opencv-python==4.10.0.84
+insightface==0.7.3
+onnxruntime-gpu==1.18.1
+numpy==1.26.4
+runpod==1.6.2
