@@ -4,6 +4,9 @@ numpy==1.26.4
 # OpenCV (wheel)
 opencv-python==4.10.0.84
 
+# headless avoids extra X/GL dependencies
+opencv-python-headless==4.10.0.84
+
 # ONNX Runtime GPU that matches CUDA 12.1 in the base image
 onnxruntime-gpu==1.18.1
 
