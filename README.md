@@ -1,35 +1,27 @@
-# Worker Basic
+# RunPod Serverless — Face Swap (InsightFace)
 
-This is a minimal serverless worker example. You can use the provided code to build a Docker image and deploy it as a serverless endpoint. When a request is sent to the endpoint, a worker spins up and executes the rp_handler.py script. You can replace the sleep function with any machine learning task, such as image generation, text generation, or speech-to-text conversion.
+Serverless endpoint that swaps a source face into a target image using `insightface` (`buffalo_l` detector + `inswapper_128.onnx`). Optimized for T4 GPUs and fallback usage.
 
-## To test this code locally:
+## Deploy
+1. RunPod → **Serverless** → **Create Endpoint** (Python 3.10 GPU base).
+2. Upload `handler.py` and `requirements.txt`.
+3. (Optional env):
+   - `IFACE_DET_NAME=buffalo_l`
+   - `IFACE_DET_SIZE=640`
+   - `IFACE_SWAP_MODEL=inswapper_128.onnx`
+   - `JPEG_QUALITY=95`
+4. Deploy → copy your `ENDPOINT_ID`.
 
-```
-# 1. Create a Python virtual environment
-python3 -m venv venv
-
-# 2. Activate the virtual environment
-# On macOS/Linux:
-
-source venv/bin/activate
-
-# On Windows:
-venv\Scripts\activate
-
-# 3. Install the RunPod SDK
-pip install runpod
-
-# 4. Run your script locally, the script will automatically read test_input.json as input, passing it to the handler function as an event
-python3 rp_handler.py
-
-```
-
-## Build and Push Docker Image to a Container Registry (e.g., Docker Hub)
-
-```
-# Build docker image
-docker build -t your-dockerhub-username/your-image-name:v1.0.0 --platform linux/amd64 .
-
-# Push docker image to docker hub
-docker push your-dockerhub-username/your-image-name:v1.0.0
-```
+## Sync request
+```bash
+curl "https://api.runpod.ai/v2/<ENDPOINT_ID>/runsync" \
+  -H "Authorization: Bearer $RUNPOD_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "input": {
+      "source_face_b64": "<base64_source>",
+      "target_image_b64": "<base64_target>",
+      "face_pick": "largest",
+      "min_confidence": 0.35
+    }
+  }'
