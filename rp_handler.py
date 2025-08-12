@@ -12,7 +12,8 @@ INSIGHTFACE_HOME = os.environ.get("INSIGHTFACE_HOME", "/app/.insightface")
 def _load_detector():
     os.makedirs(INSIGHTFACE_HOME, exist_ok=True)
     app = FaceAnalysis(name=DET_NAME, root=INSIGHTFACE_HOME)
-    app.prepare(ctx_id=0, det_size=(DET_SIZE, DET_SIZE))  # CPU here; GPU if present
+    # ctx_id=0 => GPU if present; otherwise CPU. Safe on serverless CPU.
+    app.prepare(ctx_id=0, det_size=(DET_SIZE, DET_SIZE))
     return app
 
 def _load_swapper():
@@ -24,20 +25,20 @@ def _load_swapper():
 app = _load_detector()
 swapper = _load_swapper()
 
-def _b64_to_cv2(b64_str):
+def _b64_to_cv2(b64_str: str):
     arr = np.frombuffer(base64.b64decode(b64_str), np.uint8)
     img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
     if img is None:
         raise ValueError("Failed to decode base64 image")
     return img
 
-def _encode_jpg(img):
+def _encode_jpg(img: np.ndarray) -> str:
     ok, buf = cv2.imencode(".jpg", img, [int(cv2.IMWRITE_JPEG_QUALITY), JPEG_QUALITY])
     if not ok:
         raise RuntimeError("Failed to encode output image")
     return base64.b64encode(buf).decode("utf-8")
 
-def _pick_faces(faces, mode):
+def _pick_faces(faces, mode: str):
     if not faces: return []
     mode = (mode or "largest").lower()
     if mode == "first": return [faces[0]]
