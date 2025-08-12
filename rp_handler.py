@@ -1,4 +1,4 @@
-import base64, os
+import base64, os, sys, traceback
 import cv2, numpy as np
 import runpod
 from insightface.app import FaceAnalysis
@@ -9,21 +9,29 @@ DET_SIZE = int(os.environ.get("IFACE_DET_SIZE", "640"))
 JPEG_QUALITY = int(os.environ.get("JPEG_QUALITY", "95"))
 INSIGHTFACE_HOME = os.environ.get("INSIGHTFACE_HOME", "/app/.insightface")
 
-def _load_detector():
-    os.makedirs(INSIGHTFACE_HOME, exist_ok=True)
-    app = FaceAnalysis(name=DET_NAME, root=INSIGHTFACE_HOME)
-    # ctx_id=0 => GPU if present; otherwise CPU. Safe on serverless CPU.
-    app.prepare(ctx_id=0, det_size=(DET_SIZE, DET_SIZE))
-    return app
+app = None
+swapper = None
 
-def _load_swapper():
-    local = os.path.join(INSIGHTFACE_HOME, "models", "inswapper_128.onnx")
-    if os.path.exists(local):
-        return get_model(local, download=False)
-    return get_model("inswapper_128.onnx", download=True, download_zip=True)
+def log(msg):
+    print(msg, file=sys.stdout, flush=True)
 
-app = _load_detector()
-swapper = _load_swapper()
+def load_models():
+    """Lazy load models and FORCE CPU (ctx_id=-1) on serverless CPU."""
+    global app, swapper
+    if app is None:
+        os.makedirs(INSIGHTFACE_HOME, exist_ok=True)
+        log(f"Loading FaceAnalysis '{DET_NAME}' at {INSIGHTFACE_HOME} (CPU mode)…")
+        app = FaceAnalysis(name=DET_NAME, root=INSIGHTFACE_HOME)
+        # IMPORTANT: -1 = CPU ; 0 would try GPU and crash on CPU endpoints
+        app.prepare(ctx_id=-1, det_size=(DET_SIZE, DET_SIZE))
+    if swapper is None:
+        local = os.path.join(INSIGHTFACE_HOME, "models", "inswapper_128.onnx")
+        log("Loading inswapper_128…")
+        if os.path.exists(local):
+            swapper = get_model(local, download=False)
+        else:
+            swapper = get_model("inswapper_128.onnx", download=True, download_zip=True)
+    return app, swapper
 
 def _b64_to_cv2(b64_str: str):
     arr = np.frombuffer(base64.b64decode(b64_str), np.uint8)
@@ -48,14 +56,21 @@ def _pick_faces(faces, mode: str):
 
 def handler(event):
     try:
-        inp = event.get("input") or {}
+        inp = (event or {}).get("input") or {}
+        # optional warmup
+        if inp.get("warmup"):
+            load_models()
+            return {"status": "success", "message": "warmed"}
+
         src_b64 = inp.get("source_face_b64")
         tgt_b64 = inp.get("target_image_b64")
         if not src_b64 or not tgt_b64:
-            return {"status":"error","message":"source_face_b64 and target_image_b64 are required."}
+            return {"status": "error", "message": "source_face_b64 and target_image_b64 are required."}
 
-        face_pick = inp.get("face_pick","largest")
+        face_pick = inp.get("face_pick", "largest")
         min_conf  = float(inp.get("min_confidence", 0.35))
+
+        app, swapper = load_models()
 
         src_img = _b64_to_cv2(src_b64)
         tgt_img = _b64_to_cv2(tgt_b64)
@@ -77,6 +92,7 @@ def handler(event):
 
         return {"status":"success","image_b64": _encode_jpg(out)}
     except Exception as e:
-        return {"status":"error","message": str(e)}
+        traceback.print_exc()
+        return {"status": "error", "message": str(e)}
 
 runpod.serverless.start({"handler": handler})
