@@ -1,9 +1,8 @@
-# base image already has torch; keep deps to wheels-only set
 numpy==1.26.4
 opencv-python-headless==4.10.0.84
 onnxruntime==1.18.1
 scipy==1.11.4
-scikit-image==0.20.0
+scikit-image==0.21.0
 pillow==10.4.0
 requests==2.31.0
 tqdm==4.66.4
